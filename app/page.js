@@ -446,22 +446,14 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [state]);
 
-  // Host heartbeat for smoother sync.
-  useEffect(() => {
-    if (!isHost()) return;
-    const timer = setInterval(async () => {
-      if (!stateRef.current?.media) return;
-      const pos = getCurrentPosition();
-      const next = { ...stateRef.current, position: pos, updatedAt: Date.now() };
-      stateRef.current = next;
-      setState(next);
-      await send("media", { state: next });
-    }, 2500);
-    return () => clearInterval(timer);
-  }, [state?.hostId, state?.media?.type, state?.media?.id, clientId]);
+    // Realtime video state is synchronized through Supabase Broadcast.
+  // There is no host heartbeat, so changes made by any member
+  // won't be overwritten by the host.
 
   useEffect(() => {
-    return () => channelRef.current?.unsubscribe();
+    return () => {
+      channelRef.current?.unsubscribe();
+    };
   }, []);
 
   const host = isHost();
