@@ -173,25 +173,49 @@ export default function Home() {
         setMembers(list);
       })
       .subscribe(async (status) => {
-        if (status !== "SUBSCRIBED") return;
-        setConnected(true);
-        channelRef.current = channel;
+  console.log("[SUPABASE REALTIME] status:", status);
 
-        await channel.track({
-          name: cleanName(name),
-          joinedAt: Date.now()
-        });
+  if (status !== "SUBSCRIBED") {
+    setConnected(false);
+    console.error("[SUPABASE REALTIME] Channel gagal:", status);
+    return;
+  }
 
-        if (isHost) {
-          const initial = initialState(clientId);
-          setState(initial);
-          await sendWithChannel(channel, "state", { state: initial });
-          await sendWithChannel(channel, "room_info", { room: { ...roomData, password: "" } });
-        } else {
-          const proof = await hashText(`${roomData.code}:${roomData.password || ""}`);
-          await sendWithChannel(channel, "join_request", { from: clientId, clientId, proof });
-        }
-      });
+  setConnected(true);
+  channelRef.current = channel;
+
+  await channel.track({
+    name: cleanName(name),
+    joinedAt: Date.now()
+  });
+
+  if (isHost) {
+    const initial = initialState(clientId);
+    setState(initial);
+    stateRef.current = initial;
+
+    await sendWithChannel(channel, "state", {
+      state: initial
+    });
+
+    await sendWithChannel(channel, "room_info", {
+      room: {
+        ...roomData,
+        password: ""
+      }
+    });
+  } else {
+    const proof = await hashText(
+      `${roomData.code}:${roomData.password || ""}`
+    );
+
+    await sendWithChannel(channel, "join_request", {
+      from: clientId,
+      clientId,
+      proof
+    });
+  }
+});
 
     return true;
   }
