@@ -262,18 +262,15 @@ export default function Home() {
   }
 
   async function publishState(next, event = "media") {
-    if (!isHost()) {
-      notify("Hanya host yang dapat mengontrol video.");
-      return;
-    }
-    const normalized = {
-      ...next,
-      hostId: clientId,
-      updatedAt: Date.now()
-    };
-    setState(normalized);
-    await send(event, { state: normalized });
-  }
+  const normalized = {
+    ...next,
+    hostId: stateRef.current?.hostId || roomRef.current?.hostId || clientId,
+    updatedAt: Date.now()
+  };
+  setState(normalized);
+  stateRef.current = normalized;
+  await send(event, { state: normalized });
+}
 
   async function addVideo() {
     const raw = videoInput.trim();
@@ -341,7 +338,6 @@ export default function Home() {
   }
 
   async function hostPlayPause() {
-    if (!isHost()) return notify("Hanya host yang dapat mengontrol video.");
     const current = getCurrentPosition();
     await publishState({
       ...stateRef.current,
@@ -351,7 +347,6 @@ export default function Home() {
   }
 
   async function hostSeek(delta) {
-    if (!isHost()) return notify("Hanya host yang dapat mengontrol video.");
     const current = getCurrentPosition();
     await publishState({
       ...stateRef.current,
